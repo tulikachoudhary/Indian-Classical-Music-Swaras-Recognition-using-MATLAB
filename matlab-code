@@ -1,0 +1,181 @@
+%code1.m
+clear; clc; clf; close all
+mute = true; % set this to false to hear audio throughout program
+             % useful for debugging
+[song,Fs] = audioread('bhajan.mp3');
+Fs = Fs*72;   % speed up song (original audio file is very slow)
+%% set parameters (change based on song)
+t1 = 2.3e6; t2 = 4.9e6;
+% analyze a window of the song
+y = song(t1:t2);
+[~,n] = size(y);
+t = linspace(t1,t2,n);
+if ~mute, plotsound(y,Fs); end
+audiowrite('bhajan.wav',y,Fs);
+%% FFT of song
+% Y = fft(y);
+% Y_norm = abs(Y./max(Y));
+% figure, plot(Y_norm), title('Normalized FFT of song window'), xlim([0 floor(n/2)])
+%% downsample by m
+clc
+m = 20;
+Fsm = round(Fs/m);
+p = floor(n/m);
+y_avg = zeros(1,p);
+for i = 1:p
+    y_avg(i) = mean(y(m*(i-1)+1:m*i));
+end
+% figure, plot(linspace(0,100,n),abs(y)), hold on
+%         plot(linspace(0,100,p),abs(y_avg))
+%         title('Discrete notes of song')
+%        legend('Original', '20-point averaged and down-sampled')
+if ~mute, sound(y_avg,Fsm); end
+%% threshold to find notes
+close all
+y_thresh = zeros(1,p);
+i = 1;
+while (i <= p)
+    thresh = 5*median(abs(y_avg(max(1,i-5000):i)));
+    if (abs(y_avg(i)) > thresh)
+        for j = 0:500
+            if (i + j <= p)
+                y_thresh(i) = y_avg(i);
+                i = i + 1;
+            end
+        end
+        i = i + 1400;
+    end
+    i = i + 1;
+end
+ 
+if ~mute, sound(y_thresh,round(Fsm)); end
+%% find frequencies of each note
+clc; close all
+i = 1;
+i_note = 0;
+while i < p
+    j = 1;
+    end_note = 0;
+    while (((y_thresh(i) ~= 0) || (end_note > 0)) && (i < p))
+        note(j) = y_thresh(i);
+        i = i + 1;
+        j = j + 1;
+        if (y_thresh(i) ~= 0)
+            end_note = 20;
+        else
+            end_note = end_note - 1;
+        end
+        if (end_note == 0)
+           if (j > 25)
+               note_padded = [note zeros(1,j)]; % pad note with zeros to double size (N --> 2*N-1)
+               Note = fft(note_padded);
+               Ns = length(note);
+               f = linspace(0,(1+Ns/2),Ns);
+               [~,index] = max(abs(Note(1:length(f))));
+               if (f(index) > 20)
+                   i_note = i_note + 1;
+                   fundamentals(i_note) = f(index)*2;
+                   figure, plot(f,abs(Note(1:length(f))))
+                           title(['Fundamental frequency = ',num2str(fundamentals(i_note)),' Hz'])
+                           %plot(note_padded)
+                           newnote_id1(fundamentals(i_note))
+                          
+               end
+               i = i + 50;
+           end
+           clear note;
+           break
+        end
+        
+    end
+    i = i + 1;
+end
+%newnote_id1.m
+function []=newnote_id1(note)
+%note = 166;
+% we will add +5 Hz and -5 Hz range for accurate identification of swaras
+        %lower begins
+     if note >= 128 && note <= 135.5
+           disp('Sa Lower Octave');
+        elseif note >= 135.6 && note <= 144.5
+            disp('re Lower Octave');
+        elseif note >= 144.6 && note <= 153.5
+            disp('Re Lower Octave');
+        elseif note >= 153.6 && note <= 162.5
+            disp('ga Lower Octave');
+        elseif note >= 162.6 && note <= 171.5
+            disp('Ga Lower Octave');
+        elseif note >= 171.6 && note <= 181.5
+            disp('Ma Lower Octave');
+        elseif note >= 181.6 && note <= 191.5
+            disp('ma Lower Octave');
+        elseif note >= 191.6 && note <= 203.5
+            disp('Pa Lower Octave');
+        elseif note >= 203.6 && note <= 215.5
+            disp('dha Lower Octave');
+        elseif note >= 215.6 && note <= 228.5
+            disp('Dha Lower Octave');
+        elseif note >= 228.6 && note <= 242.5
+            disp('ni Lower Octave');
+        elseif note >= 242.6 && note <= 255.5
+            disp('Ni Lower Octave');
+        % lower ends
+        
+        % middle starts
+        elseif note >= 255.6 && note <= 270.5
+            disp('Sa Middle Octave');
+        elseif note >= 270.6 && note <= 288.5
+            disp('re Middle Octave');
+        elseif note >= 288.6 && note <= 305.5
+            disp('Re Middle Octave');
+        elseif note >= 305.6 && note <= 323.5
+            disp('ga Middle Octave');
+        elseif note >= 323.6 && note <= 341.5
+            disp('Ga Middle Octave');
+        elseif note >= 341.6 && note <= 361.5
+            disp('Ma Middle Octave');
+        elseif note >= 361.6 && note <= 383.5
+            disp('ma Middle Octave');
+        elseif note >= 383.6 && note <= 407.5
+            disp('Pa Middle Octave');
+        elseif note >= 407.6 && note <= 431.5
+            disp('dha Middle Octave');
+        elseif note >= 431.6 && note <= 455.5
+            disp('Dha Middle Octave');
+        elseif note >= 455.6 && note <= 484.5
+            disp('ni Middle Octave');
+        elseif note >= 484.6 && note <= 510.5
+            disp('Ni Middle Octave');
+        %middle ends 
+       
+        %upper begins
+        elseif note >= 510.6 && note <= 539.5
+            disp('Sa Upper Octave');
+        elseif note >= 539.6 && note <= 574.5
+            disp('re Upper Octave');
+        elseif note >= 574.6 && note <= 608.5
+            disp('Re Upper Octave');
+        elseif note >= 608.6 && note <= 645.5
+            disp('ga Upper Octave');
+        elseif note >= 645.6 && note <= 683.5
+            disp('Ga Upper Octave');
+        elseif note >= 683.6 && note <= 723.5
+            disp('Ma Upper Octave');
+        elseif note >= 723.6 && note <= 765.5
+            disp('ma Upper Octave');
+        elseif note >= 765.6 && note <= 812.5
+            disp('Pa Upper Octave');
+        elseif note >= 812.6 && note <= 860.5
+            disp('dha Upper Octave');
+        elseif note >= 860.6 && note <= 912.5
+            disp('Dha Upper Octave');
+        elseif note >= 912.6 && note <= 968.5
+            disp('ni Upper Octave');
+        elseif note >= 968.6 && note <= 997
+            disp('Ni Upper Octave');
+        %upper ends
+     else
+        disp('frequency outside of acceptable range')
+     end
+     
+end
